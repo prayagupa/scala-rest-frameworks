@@ -101,6 +101,9 @@ No a clean way to expose API definition to consumers as headers/ cookies/ req pa
 
 jetty - 1.2 ms for above perf
 
+<h4>11) example</h4>
+
+https://github.com/duwamish-os/config-management-ui
 
 play-framework
 --------------
@@ -109,6 +112,7 @@ play-framework
 
 - install sbt
 - add plugin PlayScala
+- add play-json
 
 <h4>2) Server backend (to implement HTTP requests and HTTP responses)</h4>
 
@@ -136,28 +140,21 @@ object Router {
 example, 
 
 ```scala
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
+import play.api.libs.json.Json
 import play.api.mvc._
-
 
 class ApiController extends Controller {
 
-  private val objectMapper = (new ObjectMapper() with ScalaObjectMapper).registerModule(DefaultScalaModule)
-
   def game = Action {
-    val user = Map("username" -> "updupd")
+
     val posts = List(
       Map("player" -> "upd",
-        "score" -> "1000"
-      ),
-      Map("player" -> "dude",
-        "score" -> "999"
-      )
-    )
+        "score" -> "1000"),
 
-    Ok(objectMapper.writeValueAsString(posts))
+      Map("player" -> "dude",
+        "score" -> "999"))
+
+    Ok(Json.toJson(posts))
   }
 
 }
@@ -206,8 +203,17 @@ No a clean way to expose API definition to consumers as headers/ cookies/ req pa
 
 <h4>8) API http-client</h4>
 
+Provides play-ws async http clinet - https://www.playframework.com/documentation/2.6.x/ScalaWS which uses netty-client
+
 <h4>9) Performance</h4>
 
+93,002 req/sec
 
 <h4>10) Latency</h4>
+
+6.3 ms/req
+
+<h4>11) example</h4>
+
+https://github.com/duwamish-os/scala-play-war
 
