@@ -1,5 +1,11 @@
 # scala REST libraries comparison
 
+- [scalatra](#scalatra)
+
+- [play!](#play-framework)
+
+- [finch](#finch)
+
 scalatra
 ---------
 
@@ -12,9 +18,7 @@ scalatra
 
 <h4>2) Server backend (to implement HTTP requests and HTTP responses)</h4>
 
-[Jetty](http://scalatra.org/guides/2.5/deployment/standalone.html)
-
-_Eclipse Jetty provides a Web server and javax.servlet container, plus support for HTTP/2, WebSocket etc_
+[Jetty](http://scalatra.org/guides/2.5/deployment/standalone.html) - _Eclipse Jetty provides a Web server and javax.servlet container, plus support for HTTP/2, WebSocket etc_
 
 <h4>3) REST API definition/ Routes</h4>
 
