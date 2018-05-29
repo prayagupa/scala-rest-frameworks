@@ -1,12 +1,15 @@
 quinault-http
 -------------
 
+Summary 
+---------
+
 Here's what I expect from a REST library.
 
 1) define endpoints as function of `HttpRequest => Future[Either[HttpResponseError, HttpResponse]]`
-2) provide functional way of headers/ cookies/ payload validation (like finch)
+2) provide functional way to define headers/ cookies/ payload validation as part of route (like in finch)
 3) provide auto decoder and encoder for the endpoints (circe provides that)
-4) provide http-client autogen so that clients can simply add the jar and can use the API. obviously provides versioning
+4) provide http-client autogen so that clients can simply add the jar and can use the API. obviously provides versioning. (inspired from jaxrs-client https://docs.oracle.com/javaee/7/tutorial/jaxrs-client001.htm#BABBIHEJ)
 
 API details
 ------------
@@ -23,7 +26,37 @@ API details
 
 <h4>3) REST API definition/ Routes</h4>
 
-provides clean routing API as a function `HttpRequest => Future[Either[HttpResponseError[E], HttpResponse[R]]]`
+Provides clean routing API as a function `HttpRequest => Future[Either[HttpResponseError[E], HttpResponse[R]]]`
+
+The problem with play framework for example is the endpoint allows whatever type as response.
+
+```scala
+import api.GameApi
+import play.api.libs.json.Json
+import play.api.mvc.{Action, AnyContent, RequestHeader}
+import play.api.routing._
+import play.api.routing.sird._
+import play.api.mvc._
+
+class ApiRouter extends SimpleRouter {
+
+  override def routes: PartialFunction[RequestHeader, Action[AnyContent]] = {
+    case GET(p"/game/$correlationId") =>
+      Action {
+        Results.Ok(Json.toJson(GameApi.instance.scores(correlationId)))
+      }
+  }
+}
+
+```
+
+Same problem with scalatra.
+
+```scala
+def get(transformers: RouteTransformer*)(action: => Any): Route = addRoute(Get, transformers, action)
+```
+
+So, I expect `quinault-http` to have typed route definition to be something roughly as,
 
 ```scala
 private[quinault] trait Endpoint {
@@ -62,7 +95,7 @@ import scala.util.{Failure, Success}
 
 scala> object PurchasesServer {
       
-          val purchaseEndpoint: Future[Either[PurchaseResponseError, PurchaseResponse]] = post("api" :: "purchases" :: header[String]("correlationId") :: jsonBody[PurchaseRequest]) {
+          def purchaseItems: Future[Either[PurchaseResponseError, PurchaseResponse]] = post("api" :: "purchases" :: header[String]("correlationId") :: jsonBody[PurchaseRequest]) {
             (correlationId: String, purchaseRequest: PurchaseRequest) => {
       
               concurrent.Future { PurchaseResponse(correlationId) }
@@ -93,18 +126,23 @@ TODO
 
 <h4>6) Request Deserialization/ Response Serialisation</h4>
 
-Uses circe which provides compile time derivation of deserializers and serializers
+provide compile time derivation of deserializers and serializers. can use circe
 
 
 <h4>7) Exposing API definition</h4>
 
-Headers/Cookies are part of part of API definition. 
+Headers/Cookies/payload should be typed and be part of API definition. 
 
-It helps the API definition to be exposed cleanly to the consumers as a jar dependency.
+`quinault-http` should help the API definition to be exposed cleanly to the consumers can simply use the jar and use the REST API
 
 <h4>8) API http-client</h4>
 
-Provides featherbed as async http-client - quileute
+Provides quileute as async http-client
+
+
+```scala
+val purchases : Future[Either[PurchaseResponseError, PurchaseResponse]] = PurchasesServer.purchaseItems(purchaseId = 100, """{ "items": ["item1", "item2"] }""")
+```
 
 <h4>9) Performance</h4>
 
