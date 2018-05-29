@@ -137,11 +137,14 @@ Headers/Cookies/payload should be typed and be part of API definition.
 
 <h4>8) API http-client</h4>
 
-Provides quileute as async http-client
+quileute will auto-gen the http-client so that the API consumers can use it as jar dependency.
 
 
 ```scala
-val purchases : Future[Either[PurchaseResponseError, PurchaseResponse]] = PurchasesServer.purchaseItems(purchaseId = 100, """{ "items": ["item1", "item2"] }""")
+
+val purchases : Future[Either[PurchaseResponseError, PurchaseResponse]] = PurchasesServer.purchaseItems(
+            purchaseId = 100, 
+            payload = """{ "items": ["item1", "item2"] }""")
 ```
 
 <h4>9) Performance</h4>
