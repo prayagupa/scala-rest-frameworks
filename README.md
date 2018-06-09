@@ -6,6 +6,8 @@
 
 - [finch](#finch)
 
+- [http4s](#http4s)
+
 scalatra
 ---------
 
@@ -351,3 +353,116 @@ Provides featherbed as async http-client - https://finagle.github.io/featherbed/
 <h4>11) example</h4>
 
 https://github.com/duwamish-os/chat-server
+
+
+[http4s](https://github.com/http4s/http4s)
+---------
+
+<h4>1) setup/ bootstrap</h4>
+
+- install sbt
+- add http4s-blaze-server dependency
+- add http4s-circe dependency
+- add http4s-dsl dependency
+
+<h4>2) Server backend (to implement HTTP requests and HTTP responses)</h4>
+
+[blaze](https://github.com/http4s/blaze) - _blaze is a scala library for building async pipelines, with a focus on network IO_
+
+<h4>3) REST API definition/ Routes</h4>
+
+- provides dsl for routes `Http4sDsl`. 
+
+```scala
+object -> {
+  def unapply[F[_]](req: Request[F]): Some[(Method, Path)] =
+    Some((req.method, Path(req.pathInfo)))
+}
+
+case class /(parent: Path, child: String) extends Path {
+  lazy val toList: List[String] = parent.toList ++ List(child)
+
+  def lastOption: Some[String] = Some(child)
+
+  lazy val asString: String = s"$parent/${UrlCodingUtils.pathEncode(child)}"
+
+  override def toString: String = asString
+
+  def startsWith(other: Path): Boolean = {
+    val components = other.toList
+    toList.take(components.length) === components
+  }
+}
+```
+
+- has to read headers/cookies/ request payload etc explicitly inside a match function
+
+example, 
+
+```scala
+
+import cats.effect.IO
+import fs2.StreamApp
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.syntax._
+import org.http4s._
+import org.http4s.circe._
+import org.http4s.dsl.Http4sDsl
+import org.http4s.server.blaze.BlazeBuilder
+import schema.{ChatHistory, ChatRequest, ChatResponse}
+
+
+import scala.concurrent.ExecutionContext.Implicits.global
+
+object RestServer extends StreamApp[IO] with Http4sDsl[IO] {
+
+  val service: HttpService[IO] = HttpService[IO] {
+
+    case req@GET -> Root / "api" / "chat" / "history" / customerID =>
+      val correlationId = req.headers.find(_.name == "correlationId").map(_.value).getOrElse("")
+      Ok(Future(ChatHistory(correlationId, List("hi, how can i help you?", "here is coffee shop"))))
+
+    case request@POST -> Root / "api" / "chat" =>
+      for {
+        chatRequest <- request.as[ChatRequest]
+        chatResponse <- Ok(Future(ChatResponse(chatRequest.correlationId, "Here are near by coffee shops")))
+      } yield chatResponse
+
+  }
+  
+  ///
+}
+```
+
+<h4>6) Request Deserialization/ Response Serialisation</h4>
+
+uses circe so should be able to auto encode/decode. also provides jsonEncoderOf
+
+```scala
+  def jsonEncoderOf[F[_]: EntityEncoder[?[_], String]: Applicative, A](
+      implicit encoder: Encoder[A]): EntityEncoder[F, A] =
+    jsonEncoderWithPrinterOf(defaultPrinter)
+```
+
+https://http4s.org/v0.15/json/
+
+<h4>7) Exposing API definition</h4>
+
+Headers/Cookies are not part of part of API definition. 
+
+<h4>8) API http-client</h4>
+
+maybe https://github.com/http4s/rho
+
+<h4>9) Performance</h4>
+
+[82,652 req/sec](https://www.techempower.com/benchmarks/#section=data-r15&hw=ph&test=json&l=hr9u67)
+
+<h4>10) Latency</h4>
+
+2.3 ms
+
+<h4>11) example</h4>
+
+https://github.com/duwamish-os/http4s-rest-server
