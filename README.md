@@ -369,6 +369,8 @@ https://github.com/duwamish-os/chat-server
 
 [blaze](https://github.com/http4s/blaze) - _blaze is a scala library for building async pipelines, with a focus on network IO_
 
+netty support is coming on as well - https://github.com/http4s/http4s/pull/1831/
+
 <h4>3) REST API definition/ Routes</h4>
 
 - provides dsl for routes `Http4sDsl`. 
