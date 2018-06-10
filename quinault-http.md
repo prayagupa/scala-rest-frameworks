@@ -9,7 +9,7 @@ Here's what I expect from a REST library.
 1) define endpoints as function of `HttpRequest => Future[Either[HttpResponseError, HttpResponse]]`
 2) provide typesafe and functional way to define headers/ cookies/ payload validation as part of route (like in finch)
 3) provide auto decoder and encoder for the endpoints (circe provides that)
-4) provide http-client autogen so that clients can simply add the jar and can use the API. obviously provides versioning. (inspired from jaxrs-client https://docs.oracle.com/javaee/7/tutorial/jaxrs-client001.htm#BABBIHEJ)
+4) provide typesafe http-client autogen'd so that clients can simply add the jar and can use the API. obviously provides nice versioning. (inspired from jaxrs-client https://docs.oracle.com/javaee/7/tutorial/jaxrs-client001.htm#BABBIHEJ)
 
 API details
 ------------
@@ -22,50 +22,11 @@ API details
 
 <h4>2) Server backend (to implement HTTP requests and HTTP responses)</h4>
 
-- [Netty](https://netty.io/) or akka-http
+- [Netty](https://netty.io/) or akka-http or blaze
 
 <h4>3) REST API definition/ Routes</h4>
 
 Provides clean routing API as a function `HttpRequest => Future[Either[HttpResponseError[E], HttpResponse[R]]]`
-
-The problem with play framework for example is the endpoint allows whatever type as response.
-
-```scala
-import api.GameApi
-import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, RequestHeader}
-import play.api.routing._
-import play.api.routing.sird._
-import play.api.mvc._
-
-class ApiRouter extends SimpleRouter {
-
-  override def routes: PartialFunction[RequestHeader, Action[AnyContent]] = {
-    case GET(p"/game/$correlationId") =>
-      Action {
-        Results.Ok(Json.toJson(GameApi.instance.scores(correlationId)))
-      }
-  }
-}
-
-```
-
-Same problem with scalatra.
-
-```scala
-def get(transformers: RouteTransformer*)(action: => Any): Route = addRoute(Get, transformers, action)
-```
-
-So, I expect `quinault-http` to have typed route definition to be something roughly as,
-
-```scala
-private[quinault] trait Endpoint {
-
-  def get[A](e: HttpDefinition[R]): Endpoint[Either[HttpResponseError[E], HttpResponse[R]]]
-
-  //
-}
-```
 
 example, 
 
@@ -112,7 +73,6 @@ defined object PurchasesServer
 
 Provides well designed request validation API
 
-
 ```scala
 scala> val purchases = post("api" :: "purchases" :: header[Int]("purchaseId").should("be greater than 5"){_ > 5})
 purchases: io.quinault.syntax.Endpoint[Int] = POST /api :: purchases :: header(purchaseId)
@@ -151,13 +111,21 @@ final case class ChatResponse(message: String, options: Seq[String])
 
 v2
 ```scala
-final case class ChatResponse(message: String, options: Seq[String], chatOptions: Seq[ChatOption])
+final case class ChatResponse(message: String, @deprecated("please use ChatOption instead, will be dropped in v3", "v1") options: Seq[String], chatOptions: Seq[ChatOption])
 
 final case class ChatOption(option: String)
 ```
 
 2.2) if a field name is changing do the same, deprecate old field, introduce a new v2 field.
 3) once consumers are done upgrading to new fields, drop the old field.
+
+v3
+```scala
+final case class ChatResponse(message: String, chatOptions: Seq[ChatOption])
+
+final case class ChatOption(option: String)
+```
+
 4) enumeration are evils because new values can not just be added without client being able to decode. So,
   Option 1) publish a client jar only with new fields. Once consumers are done implementing new schema, API will implment the changes and populate data on new fields.
   Option 2) publish a client jar with new field for enum along with implmentation on API side, deprecate older field.
