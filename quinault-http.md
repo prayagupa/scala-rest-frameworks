@@ -7,7 +7,7 @@ Summary
 Here's what I expect from a REST library.
 
 1) define endpoints as function of `HttpRequest => Future[Either[HttpResponseError, HttpResponse]]`
-2) provide functional way to define headers/ cookies/ payload validation as part of route (like in finch)
+2) provide typesafe and functional way to define headers/ cookies/ payload validation as part of route (like in finch)
 3) provide auto decoder and encoder for the endpoints (circe provides that)
 4) provide http-client autogen so that clients can simply add the jar and can use the API. obviously provides versioning. (inspired from jaxrs-client https://docs.oracle.com/javaee/7/tutorial/jaxrs-client001.htm#BABBIHEJ)
 
@@ -139,9 +139,29 @@ Headers/Cookies/payload should be typed and be part of API definition.
 
 quileute will auto-gen the http-client so that the API consumers can use it as jar dependency.
 
+**client schema upgrade rules**
+
+1) First rule is client jars should NEVER EVER introduce breaking changes, introduce changes in a safe manner.
+2.1) if a field type is changing (eg, could be header/cookie/json fields in request/response schema), deprecate old field, introduce a new v2 field with new type and publish jar. API should still support both.
 
 ```scala
+final case class ChatResponse(message: String, options: Seq[String])
+```scala
 
+```scala
+final case class ChatResponse(message: String, options: Seq[String], chatOptions: Seq[ChatOption])
+
+final case class ChatOption(option: String)
+```
+
+2.2) if a field name is changing do the same, deprecate old field, introduce a new v2 field.
+3) once consumers are done upgrading to new fields, drop the old field.
+4) enumeration are evils because new values can not just be added without client being able to decode. So,
+  Option 1) publish a client jar only with new fields. Once consumers are done implementing new schema, API will implment the changes and populate data on new fields.
+  Option 2) publish a client jar with new field for enum along with implmentation on API side, deprecate older field.
+
+
+```
 val purchases : Future[Either[PurchaseResponseError, PurchaseResponse]] = PurchasesServer.purchaseItems(
             purchaseId = 100, 
             payload = """{ "items": ["item1", "item2"] }""")
