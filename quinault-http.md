@@ -144,10 +144,12 @@ quileute will auto-gen the http-client so that the API consumers can use it as j
 1) First rule is client jars should NEVER EVER introduce breaking changes, introduce changes in a safe manner.
 2.1) if a field type is changing (eg, could be header/cookie/json fields in request/response schema), deprecate old field, introduce a new v2 field with new type and publish jar. API should still support both.
 
+v1
 ```scala
 final case class ChatResponse(message: String, options: Seq[String])
-```scala
+```
 
+v2
 ```scala
 final case class ChatResponse(message: String, options: Seq[String], chatOptions: Seq[ChatOption])
 
